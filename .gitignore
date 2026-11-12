@@ -1,0 +1,23 @@
+# Dữ liệu gốc (tải từ UCI, không commit)
+data.csv
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# LaTeX build
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.lof
+report/*.lot
+report/*.synctex.gz
+report/*.pdf
+
+# Hệ thống
+.DS_Store
+Thumbs.db
