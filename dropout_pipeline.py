@@ -84,20 +84,82 @@ SEM2_COLS = [f"Curricular units 2nd sem {f}" for f in SEM_FIELDS]
 # 1. Nạp và làm sạch dữ liệu
 # ---------------------------------------------------------------------------
 def load_data(path):
-    df = pd.read_csv(path, sep=";")
-    df.columns = [c.strip() for c in df.columns]
-    df = df.rename(columns={"Nacionality": "Nationality"})
+    """Đọc CSV tự nhận diện dấu phân cách và chuẩn hóa tên cột."""
+    if not os.path.isfile(path):
+        raise FileNotFoundError(
+            f"Không tìm thấy file dữ liệu: {path}. "
+            "Hãy kiểm tra --data hoặc đặt CSV đúng thư mục."
+        )
+
+    df = pd.read_csv(path, sep=None, engine="python", encoding="utf-8-sig")
+    df.columns = [
+        str(c).strip().replace("\ufeff", "").replace("Nacionality", "Nationality")
+        for c in df.columns
+    ]
+
+    # Chuẩn hóa tên cột theo danh sách tên chuẩn, không phân biệt hoa/thường.
+    # Ví dụ: "Marital Status" -> "Marital status".
+    expected_names = (
+        CAT_COLS + BIN_COLS + BASE_NUM + MACRO_COLS + SEM1_COLS + SEM2_COLS
+        + ["Target"]
+    )
+    canonical_names = {name.casefold(): name for name in expected_names}
+    rename_map = {
+        col: canonical_names[col.casefold()]
+        for col in df.columns
+        if col.casefold() in canonical_names and col != canonical_names[col.casefold()]
+    }
+    if rename_map:
+        df.rename(columns=rename_map, inplace=True)
+
+    # Chuẩn hóa tên cột Target, không phân biệt chữ hoa/thường.
+    target_col = next((c for c in df.columns if c.lower() == "target"), None)
+    if target_col is None:
+        raise ValueError(
+            "Không tìm thấy cột Target. Có thể CSV đang dùng sai dấu phân cách "
+            f"hoặc tên cột khác. Các cột đọc được: {df.columns.tolist()}"
+        )
+    if target_col != "Target":
+        df.rename(columns={target_col: "Target"}, inplace=True)
+
+    # Kiểm tra các cột mà mô hình bắt buộc phải sử dụng.
+    required = (
+        CAT_COLS + BIN_COLS + BASE_NUM + MACRO_COLS + SEM1_COLS + SEM2_COLS
+        + ["Target"]
+    )
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(
+            "Dataset thiếu các cột cần cho pipeline:\n- "
+            + "\n- ".join(missing)
+            + f"\nCác cột hiện có: {df.columns.tolist()}"
+        )
+
+    df["Target"] = df["Target"].astype(str).str.strip()
+    valid_targets = {"Graduate", "Enrolled", "Dropout"}
+    unexpected = sorted(set(df["Target"].dropna()) - valid_targets)
+    if unexpected:
+        raise ValueError(f"Giá trị Target không đúng định dạng dự kiến: {unexpected}")
 
     n_dup = int(df.duplicated().sum())
     df = df.drop_duplicates().reset_index(drop=True)
     print(f"Đã loại {n_dup} dòng trùng lặp. Kích thước sau làm sạch: {df.shape}")
+    print("Phân bố Target:\\n", df["Target"].value_counts().to_string())
 
-    # Khi không có đánh giá nào (evaluations == 0) thì điểm 0.0 là "không có", không phải điểm thật
-    for s in ["1st sem", "2nd sem"]:
-        mask = df[f"Curricular units {s} (evaluations)"] == 0
-        df.loc[mask, f"Curricular units {s} (grade)"] = np.nan
+    # Ép các cột số về numeric; giá trị không hợp lệ được chuyển thành NaN
+    numeric_cols = BIN_COLS + BASE_NUM + MACRO_COLS + SEM1_COLS + SEM2_COLS
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    df["y"] = (df["Target"] == "Dropout").astype(int)
+    # Khi không có đánh giá nào (evaluations == 0), điểm 0.0 được xem là không có điểm.
+    for semester in ["1st sem", "2nd sem"]:
+        eval_col = f"Curricular units {semester} (evaluations)"
+        grade_col = f"Curricular units {semester} (grade)"
+        df.loc[df[eval_col] == 0, grade_col] = np.nan
+
+    df["y"] = (df["Target"].str.lower() == "dropout").astype(int)
+    if df["y"].nunique() < 2:
+        raise ValueError("Target chỉ có một lớp sau khi đọc dữ liệu; không thể huấn luyện mô hình.")
     return df
 
 
@@ -330,7 +392,7 @@ def error_analysis(X_te, y_te, y_pred, out):
 # ---------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", default="data.csv")
+    ap.add_argument("--data", default="data/student_dropout.csv")
     ap.add_argument("--out", default="results")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)

@@ -1,11 +1,11 @@
 % !TEX program = xelatex
 % Biên dịch: xelatex bao_cao_de_tai_8.tex (chạy 2 lần để có mục lục)
-% Các ô {\color{red}[...]} là chỗ cần điền số liệu sau khi chạy dropout_pipeline.py.
+% Ảnh được lấy từ thư mục ../results (chạy dropout_pipeline.py và eda_extra.py trước).
 
 \documentclass[12pt,a4paper]{article}
 
 \usepackage{fontspec}
-\setmainfont{Times New Roman}
+\IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{\setmainfont{TeX Gyre Termes}}
 \usepackage[vietnamese]{babel}
 \usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=3cm,right=2cm]{geometry}
 \usepackage{graphicx}
@@ -19,7 +19,7 @@
 \usepackage{listings}
 \usepackage[hidelinks]{hyperref}
 
-\graphicspath{{results/}}
+\graphicspath{{../results/}{results/}}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{1.2em}
 \linespread{1.2}
@@ -104,7 +104,7 @@ Biến mục tiêu \texttt{Target} có ba giá trị: \textit{Dropout} (bỏ h�
 
 \subsection{Phân tích dữ liệu (EDA)}
 
-\paragraph{Cấu trúc và kiểu dữ liệu.} Dữ liệu ở định dạng CSV, phân tách bằng dấu chấm phẩy, gồm 4424 dòng và 37 cột. Trong đó có 29 cột kiểu số nguyên, 7 cột số thực và 1 cột nhãn dạng chuỗi (\texttt{Target}). Khi đọc, nhóm phát hiện hai lỗi tên cột: \texttt{Daytime/evening attendance} có ký tự tab thừa ở cuối, và \texttt{Nacionality} bị viết sai. Nhóm đã làm sạch hai lỗi này trước khi xử lý tiếp.
+\paragraph{Cấu trúc và kiểu dữ liệu.} Dữ liệu được tải từ UCI bằng thư viện \texttt{ucimlrepo} (script \texttt{scripts/download\_data.py}) và lưu thành \texttt{data/student\_dropout.csv}, gồm 4424 dòng và 37 cột. Trong đó có 29 cột kiểu số nguyên, 7 cột số thực và 1 cột nhãn dạng chuỗi (\texttt{Target}). Hai lỗi tên cột cần xử lý: \texttt{Nacionality} bị viết sai chính tả, và (trong file CSV gốc tải trực tiếp từ trang UCI, phân tách bằng dấu chấm phẩy) cột \texttt{Daytime/evening attendance} có ký tự tab thừa ở cuối. Hàm \texttt{load\_data} tự nhận diện dấu phân cách và làm sạch cả hai lỗi này trước khi xử lý tiếp.
 
 \paragraph{Phân phối nhãn.} Bảng \ref{tab:label} tóm tắt phân phối nhãn. Nếu gộp \texttt{Graduate} và \texttt{Enrolled} thành lớp ``không bỏ học'' thì tỷ lệ bỏ học là 32.1\%, tức dữ liệu mất cân bằng ở mức vừa phải. Lớp \texttt{Enrolled} có ít mẫu nhất (17.9\%) và không được đánh giá riêng trong bài toán nhị phân này.
 
@@ -216,9 +216,9 @@ Hình \ref{fig:rate} cho thấy tỷ lệ bỏ học theo các biến nhị phâ
 
 \paragraph{Tương quan giữa các biến.} Hình \ref{fig:corr} thể hiện ma trận tương quan Spearman, phù hợp hơn Pearson vì nhiều biến lệch và có giá trị rời rạc. Ba nhận xét chính:
 \begin{itemize}[leftmargin=2em]
-\item \textbf{Dư thừa giữa các học kỳ.} Các biến cùng loại ở học kỳ 1 và học kỳ 2 tương quan rất mạnh, ví dụ số môn tín chỉ được công nhận (0.95), số môn đăng ký (0.94) và số môn đạt (0.90). Các đặc trưng này mang gần như cùng thông tin. Luồng B bổ sung thêm các tỷ lệ theo từng dòng nhưng vẫn giữ các biến thô, nên dư thừa vẫn còn trong Luồng B.
-\item \textbf{Dư thừa giữa nghề nghiệp cha và mẹ.} Hai biến \texttt{Mother's occupation} và \texttt{Father's occupation} có tương quan 0.91, nên một trong hai có thể bỏ đi mà không làm mất nhiều thông tin. Nhóm giữ cả hai vì chưa kiểm tra riêng ảnh hưởng của từng biến.
-\item \textbf{Tương quan với nhãn.} Các biến có tương quan âm mạnh nhất với \texttt{y} là số môn đạt học kỳ 2 ($-0.57$), số môn đạt học kỳ 1 ($-0.48$) và điểm trung bình học kỳ 1 ($-0.48$). Tuổi khi nhập học ($+0.25$) và hình thức đăng ký ($+0.20$) có tương quan dương yếu hơn. Các biến vĩ mô và nhân khẩu học khác gần như không tương quan với nhãn ($|\rho| < 0.1$).
+\item \textbf{Dư thừa giữa các học kỳ.} Các biến cùng loại ở học kỳ 1 và học kỳ 2 tương quan rất mạnh, ví dụ số môn đăng ký (0.96) và số môn đạt (0.89). Các đặc trưng này mang gần như cùng thông tin. Luồng B bổ sung thêm các tỷ lệ theo từng dòng nhưng vẫn giữ các biến thô, nên dư thừa vẫn còn trong Luồng B.
+\item \textbf{Biến mã định danh.} \texttt{Application mode} là mã của hình thức đăng ký chứ không phải đại lượng có thứ tự, nên hệ số Spearman của biến này chỉ mang tính tham khảo. Các biến phân loại đa giá trị khác (khóa học, nghề nghiệp, trình độ cha mẹ) không đưa vào ma trận tương quan và được xử lý bằng one-hot trong mô hình.
+\item \textbf{Tương quan với nhãn.} Các biến có tương quan âm mạnh nhất với \texttt{y} là số môn đạt học kỳ 2 ($-0.58$), số môn đạt học kỳ 1 ($-0.52$), điểm trung bình học kỳ 2 ($-0.51$) và điểm trung bình học kỳ 1 ($-0.44$). Tuổi khi nhập học ($+0.28$) và hình thức đăng ký ($+0.19$) có tương quan dương yếu hơn. Điểm trúng tuyển có tương quan $-0.10$, còn ba biến vĩ mô gần như không tương quan với nhãn ($|\rho| \le 0.06$).
 \end{itemize}
 
 \begin{figure}[H]
@@ -340,11 +340,16 @@ Vì dữ liệu mất cân bằng và mục tiêu là phát hiện sớm sinh vi
 
 \subsection{Cấu trúc thư mục}
 \begin{verbatim}
-de-tai-8/
+dropout-prediction-fit4013/
 |-- README.md             # hướng dẫn cài đặt và chạy
+|-- AI_USAGE.md           # khai báo sử dụng công cụ AI
 |-- requirements.txt      # thư viện và phiên bản
-|-- data.csv              # dữ liệu (nguồn UCI 697, xem README)
-|-- dropout_pipeline.py   # toàn bộ pipeline: EDA, huấn luyện, đánh giá
+|-- data/
+|   `-- student_dropout.csv   # dữ liệu UCI 697
+|-- scripts/
+|   `-- download_data.py  # tải dữ liệu bằng ucimlrepo
+|-- dropout_pipeline.py   # pipeline chính: EDA, huấn luyện, đánh giá
+|-- eda_extra.py          # các hình EDA bổ sung
 |-- results/              # hình ảnh, bảng kết quả, phân tích lỗi
 `-- report/               # mã nguồn LaTeX của báo cáo
 \end{verbatim}
@@ -374,6 +379,8 @@ Hàm & Chức năng \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Ngoài ra, file \texttt{eda\_extra.py} sinh bốn hình EDA bổ sung dùng trong mục 1.4 (\texttt{eda\_hist\_numeric.png}, \texttt{eda\_box\_by\_target.png}, \texttt{eda\_rate\_binary.png}, \texttt{eda\_corr.png}) và lưu ma trận tương quan vào \texttt{eda\_corr.csv} để kiểm tra lại số liệu.
 
 \subsection{Đoạn mã quan trọng}
 Đoạn mã dưới đây thể hiện cách hai luồng và pipeline được xây dựng. Toàn bộ mã nằm trong file \texttt{dropout\_pipeline.py}.
@@ -414,7 +421,7 @@ def feature_sets(setting, flow):
 
 \subsection{Thiết lập thí nghiệm}
 \begin{itemize}
-  \item Môi trường: Python 3.12.3, scikit-learn 1.9.1, pandas 3.0.6, NumPy 2.5.4. Chạy trên Ubuntu 24.04.
+  \item Môi trường: Python 3.12.3, scikit-learn 1.9.1, pandas 3.0.6, NumPy 2.5.4. Chạy trên Windows 11.
   \item Hạt giống ngẫu nhiên: \texttt{random\_state=42} cho chia dữ liệu, kiểm định chéo và các mô hình có tính ngẫu nhiên.
   \item Tổng số cấu hình: 2 phạm vi $\times$ 2 luồng $\times$ 5 mô hình (gồm 2 baseline).
 \end{itemize}
@@ -525,31 +532,32 @@ B & Decision Tree & \texttt{max\_depth=7}, \texttt{min\_samples\_leaf=50}, \text
 \paragraph{Cây quyết định với \texttt{class\_weight}.} Ở phạm vi \texttt{early}, kiểm định chéo chọn \texttt{class\_weight=balanced} cho cả hai luồng, và Recall của lớp bỏ học đạt 0.810, cao hơn cây mặc định (0.680 và 0.662). Ở phạm vi \texttt{full}, cây chọn \texttt{class\_weight=None}, có Precision cao hơn (0.833 và 0.878) nhưng Recall thấp hơn (0.704 và 0.683). Đây là đánh đổi cần nêu rõ với nhà trường: bỏ sót sinh viên nguy cơ có chi phí cao hơn việc cảnh báo nhầm.
 
 \subsection{Phân tích dự đoán sai}
-Nhóm tách các mẫu theo bốn nhóm TP, TN, FN, FP và so sánh đặc điểm trung bình (file \texttt{error\_profile.csv}). Bảng \ref{tab:err} tổng hợp đặc điểm trung bình của bốn nhóm. Mô hình được phân tích là mô hình có CV-F1 cao nhất trên toàn bộ thí nghiệm: cây quyết định, Luồng B, phạm vi \texttt{full} (CV-F1 = 0.772, F1 = 0.768, ROC-AUC = 0.917).
+Nhóm tách các mẫu theo bốn nhóm TP, TN, FN, FP và so sánh đặc điểm trung bình (file \texttt{error\_profile.csv}). Bảng \ref{tab:err} tổng hợp đặc điểm trung bình của bốn nhóm. Mô hình được phân tích là mô hình có CV-F1 cao nhất trong phạm vi cảnh báo sớm \texttt{early}, được chọn không dùng tập kiểm thử: cây quyết định, Luồng B (CV-F1 = 0.748, F1 = 0.767, ROC-AUC = 0.893). Trên 885 mẫu kiểm thử, mô hình cho 230 TP, 515 TN, 86 FP và 54 FN.
 
 \begin{table}[H]
 \centering
-\caption{Đặc điểm trung bình theo nhóm dự đoán (cây quyết định, Luồng B, phạm vi \texttt{full})}
+\caption{Đặc điểm trung bình theo nhóm dự đoán (cây quyết định, Luồng B, phạm vi \texttt{early})}
 \label{tab:err}
 \begin{tabular}{lcccc}
 \toprule
 Đặc trưng & TP & TN & FN & FP \\
 \midrule
-Số môn đạt học kỳ 1 & 1.80 & 6.01 & 4.39 & 2.85 \\
-Điểm TB học kỳ 1 & 7.01 & 12.83 & 12.27 & 10.25 \\
-Điểm trúng tuyển & 123.18 & 128.39 & 126.79 & 123.87 \\
-Tỷ lệ nợ học phí & 0.23 & 0.06 & 0.09 & 0.19 \\
-Tỷ lệ đóng học phí đúng hạn & 0.53 & 0.98 & 0.93 & 0.78 \\
-Tỷ lệ có học bổng & 0.08 & 0.34 & 0.16 & 0.15 \\
+Số môn đạt học kỳ 1 & 1.89 & 6.28 & 5.76 & 3.38 \\
+Điểm TB học kỳ 1 & 7.66 & 12.93 & 12.41 & 11.32 \\
+Điểm trúng tuyển & 123.02 & 128.17 & 129.90 & 128.27 \\
+Tuổi khi nhập học & 27.90 & 21.82 & 23.22 & 22.53 \\
+Tỷ lệ nợ học phí & 0.21 & 0.04 & 0.06 & 0.17 \\
+Tỷ lệ đóng học phí đúng hạn & 0.57 & 1.00 & 1.00 & 0.81 \\
+Tỷ lệ có học bổng & 0.08 & 0.36 & 0.19 & 0.20 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Nhóm khó nhất: False Negative.} Sinh viên bỏ học nhưng bị dự đoán là không bỏ học có hồ sơ gần với nhóm TN hơn nhóm TP: số môn đạt học kỳ 1 là 4.39 (TN: 6.01; TP: 1.80), điểm trung bình học kỳ 1 là 12.27 (TN: 12.83; TP: 7.01), tỷ lệ đóng học phí đúng hạn 0.93 (TP: 0.53) và tỷ lệ nợ chỉ 0.09. Giả thuyết nguyên nhân: những sinh viên này có kết quả học kỳ 1 chưa đủ thấp để tách khỏi nhóm đang học, nên mô hình không phát hiện được. Các yếu tố như hoàn cảnh gia đình hoặc lý do cá nhân không có trong dữ liệu, đây là giới hạn của bài toán.
+\paragraph{Nhóm khó nhất: False Negative.} Sinh viên bỏ học nhưng bị dự đoán là không bỏ học có hồ sơ gần với nhóm TN hơn nhóm TP: số môn đạt học kỳ 1 là 5.76 (TN: 6.28; TP: 1.89), điểm trung bình học kỳ 1 là 12.41 (TN: 12.93; TP: 7.66), tỷ lệ đóng học phí đúng hạn là 1.00 (giống TN; TP: 0.57) và tỷ lệ nợ chỉ 0.06. Điểm trúng tuyển trung bình của nhóm này (129.90) còn cao hơn nhóm TN (128.17). Giả thuyết nguyên nhân: những sinh viên này có kết quả học kỳ 1 và tình hình tài chính không khác nhóm tiếp tục học, nên các biến trong dữ liệu không đủ để mô hình phát hiện. Các yếu tố như hoàn cảnh gia đình hoặc lý do cá nhân không có trong dữ liệu, đây là giới hạn của bài toán.
 
-\paragraph{Nhóm False Positive.} Sinh viên bị cảnh báo nhầm có số môn đạt học kỳ 1 là 2.85, điểm trung bình 10.25, tỷ lệ nợ 0.19 và đóng học phí đúng hạn 0.78, gần với nhóm TP hơn, trong khi tỷ lệ có học bổng thấp (0.15). Trong thực tế, nhóm này vẫn có giá trị vì việc hỗ trợ thêm không gây hại lớn.
+\paragraph{Nhóm False Positive.} Sinh viên bị cảnh báo nhầm nằm giữa hai nhóm: số môn đạt học kỳ 1 là 3.38 (TP: 1.89; TN: 6.28) và điểm trung bình 11.32, thấp hơn nhóm TN. Về tài chính, họ gần nhóm TP hơn: tỷ lệ nợ 0.17 và tỷ lệ đóng học phí đúng hạn 0.81, đồng thời chỉ 0.20 có học bổng (TN: 0.36). Trong thực tế, nhóm này vẫn có giá trị vì việc hỗ trợ thêm không gây hại lớn.
 
-\paragraph{Khóa học dễ nhầm.} Ba khóa có nhiều False Negative nhất là mã 171 (18 trường hợp), 9853 (11) và 9500 (11); tiếp theo là mã 9670 (8). Điều này gợi ý tỷ lệ bỏ học khác nhau giữa các khóa, và mô hình chưa nắm bắt đầy đủ điều đó.
+\paragraph{Khóa học dễ nhầm.} Trong 54 trường hợp False Negative, các khóa có nhiều nhất là mã 9853 (9 trường hợp), 9500 (7), 9670 (6) và 171 (5). Do số mẫu mỗi khóa trong tập kiểm thử nhỏ, nhóm chỉ nêu đây là gợi ý rằng tỷ lệ bỏ học khác nhau giữa các khóa mà mô hình chưa nắm bắt đầy đủ, chưa đủ cơ sở để kết luận.
 
 \subsection{Hạn chế}
 \begin{itemize}
@@ -592,9 +600,10 @@ Nhóm có sử dụng công cụ AI (trợ lý lập trình và mô hình ngôn 
 
 \section{Hướng dẫn tái lập kết quả}
 \begin{enumerate}
-  \item Tải \texttt{data.csv} từ UCI 697 và đặt cùng thư mục với mã nguồn.
   \item Cài thư viện: \texttt{pip install -r requirements.txt}.
-  \item Chạy: \texttt{python dropout\_pipeline.py --data data.csv --out results}.
+  \item Tải dữ liệu (nếu chưa có \texttt{data/student\_dropout.csv}): \texttt{python scripts/download\_data.py}.
+  \item Chạy: \texttt{python dropout\_pipeline.py --data data/student\_dropout.csv --out results}.
+  \item Chạy các hình EDA bổ sung: \texttt{python eda\_extra.py --data data/student\_dropout.csv --out results}.
   \item Kết quả nằm trong thư mục \texttt{results/}, khớp với các bảng và hình trong báo cáo.
 \end{enumerate}
 

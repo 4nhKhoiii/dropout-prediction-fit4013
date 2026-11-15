@@ -15,9 +15,57 @@ import seaborn as sns  # noqa: E402
 
 
 def load(path):
-    d = pd.read_csv(path, sep=";")
-    d.columns = [c.strip().replace("Nacionality", "Nationality") for c in d.columns]
-    d["y"] = (d["Target"] == "Dropout").astype(int)
+    """Đọc CSV tự nhận diện dấu phân cách (, hoặc ;) và chuẩn hóa cột."""
+    if not os.path.isfile(path):
+        raise FileNotFoundError(
+            f"Không tìm thấy file dữ liệu: {path}. Hãy kiểm tra tham số --data."
+        )
+
+    d = pd.read_csv(path, sep=None, engine="python", encoding="utf-8-sig")
+    d.columns = [
+        str(c).strip().replace("\\ufeff", "").replace("Nacionality", "Nationality")
+        for c in d.columns
+    ]
+
+    target_col = next((c for c in d.columns if c.lower() == "target"), None)
+    if target_col is None:
+        raise ValueError(
+            "Không tìm thấy cột Target. Hãy kiểm tra dấu phân cách và tên cột. "
+            f"Các cột đọc được: {d.columns.tolist()}"
+        )
+    if target_col != "Target":
+        d.rename(columns={target_col: "Target"}, inplace=True)
+
+    d["Target"] = d["Target"].astype(str).str.strip()
+    d["y"] = (d["Target"].str.lower() == "dropout").astype(int)
+
+    required = [
+        "Age at enrollment", "Admission grade",
+        "Curricular units 1st sem (approved)",
+        "Curricular units 1st sem (grade)",
+        "Curricular units 2nd sem (approved)",
+        "Curricular units 2nd sem (grade)",
+        "Gender", "Debtor", "Tuition fees up to date",
+        "Scholarship holder", "Displaced",
+        "Previous qualification (grade)", "Application mode",
+        "Curricular units 1st sem (enrolled)",
+        "Curricular units 1st sem (evaluations)",
+        "Curricular units 2nd sem (enrolled)",
+        "Unemployment rate", "Inflation rate", "GDP",
+    ]
+    missing = [c for c in required if c not in d.columns]
+    if missing:
+        raise ValueError(
+            "Dataset thiếu các cột cần cho biểu đồ EDA:\\n- "
+            + "\\n- ".join(missing)
+            + f"\\nCác cột hiện có: {d.columns.tolist()}"
+        )
+
+    for col in required:
+        d[col] = pd.to_numeric(d[col], errors="coerce")
+
+    print(f"Đã đọc dữ liệu: {d.shape[0]} dòng, {d.shape[1]} cột")
+    print("Phân bố Target:\\n", d["Target"].value_counts().to_string())
     return d
 
 
@@ -88,7 +136,12 @@ def corr_heatmap(d, out):
            "Curricular units 2nd sem (approved)", "Curricular units 2nd sem (grade)",
            "Unemployment rate", "Inflation rate", "GDP", "y"]
     short = {c: c.replace("Curricular units ", "CU ").replace(" (", "\n(") for c in num}
+    num = [c for c in num if c in d.columns]
+    for c in num:
+        d[c] = pd.to_numeric(d[c], errors="coerce")
     cm = d[num].corr(method="spearman")
+    if cm.empty:
+        raise ValueError("Không có cột số hợp lệ để tạo biểu đồ tương quan.")
     fig, ax = plt.subplots(figsize=(9, 7.5))
     sns.heatmap(cm.rename(index=short, columns=short), cmap="RdBu_r", vmin=-1, vmax=1,
                 annot=True, fmt=".2f", annot_kws={"size": 6},
@@ -102,7 +155,7 @@ def corr_heatmap(d, out):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", default="data.csv")
+    ap.add_argument("--data", default="data/student_dropout.csv")
     ap.add_argument("--out", default="results")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
