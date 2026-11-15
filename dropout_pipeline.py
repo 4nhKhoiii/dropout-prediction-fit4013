@@ -1,21 +1,3 @@
-"""
-FIT4013 - Đề tài 8: Dự đoán sinh viên có nguy cơ bỏ học
-Dataset: UCI 697 "Predict Students' Dropout and Academic Success" (data.csv, phân tách bằng ';')
-
-Chạy:
-    python dropout_pipeline.py --data data.csv --out results
-
-Thiết kế chính:
-  * Nhãn nhị phân: y = 1 nếu Target == "Dropout", ngược lại y = 0 (Enrolled + Graduate).
-  * Hai phạm vi đặc trưng:
-      - "early": thông tin lúc nhập học + kết thúc học kỳ 1 (dùng được để cảnh báo sớm).
-      - "full" : thêm thông tin học kỳ 2 (chỉ để so sánh, không dùng để cảnh báo sớm).
-  * Hai luồng tiền xử lý (Luồng A và Luồng B) như yêu cầu của đề bài.
-  * Mọi bước học tham số (impute, scale, one-hot) nằm trong Pipeline và chỉ fit trên tập train.
-  * Chọn siêu tham số bằng StratifiedKFold trên tập train (metric: F1 của lớp Dropout).
-  * Tập test chỉ dùng một lần để báo cáo kết quả cuối.
-"""
-
 import argparse
 import os
 import warnings
@@ -23,6 +5,10 @@ import warnings
 import numpy as np
 import pandas as pd
 import matplotlib
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
@@ -317,6 +303,9 @@ def error_analysis(X_te, y_te, y_pred, out):
         ["TP", "TN", "FN"],
         default="FP",
     )
+    print("\nSố lượng theo nhóm:")
+    print(e["group"].value_counts())
+
     cols = [c for c in [
         "Curricular units 1st sem (approved)",
         "Curricular units 1st sem (grade)",
@@ -352,10 +341,13 @@ def main():
 
     res, fitted = run_experiments(df, args.out)
 
-    candidates = res[~res["model"].str.startswith("Baseline")]
-    best_row = candidates.sort_values("cv_f1", ascending=False).iloc[0]
-    key = (best_row["setting"], best_row["flow"], best_row["model"])
-    print(f"\nMô hình được chọn theo CV-F1: {key}")
+    # Phân tích lỗi chỉ trên phạm vi "early" (phạm vi dùng để cảnh báo sớm).
+    # Chọn mô hình theo CV-F1 trong phạm vi này, không dùng tập kiểm thử.
+    cand = res[(res["setting"] == "early") & (~res["model"].str.startswith("Baseline"))]
+    best_row = cand.sort_values("cv_f1", ascending=False).iloc[0]
+    key = ("early", best_row["flow"], best_row["model"])
+    print(f"\nMô hình được chọn để phân tích lỗi (early, theo CV-F1): {key}")
+
     _, X_te, y_te, y_pred = fitted[key]
     error_analysis(X_te, y_te, y_pred, args.out)
     print(f"\nHoàn tất. Kết quả lưu tại thư mục: {args.out}")
