@@ -1,0 +1,233 @@
+========================================================================
+BÁO CÁO KIỂM TRA TƯƠNG QUAN VÀ DATA LEAKAGE
+Dữ liệu: 4424 mẫu, 36 đặc trưng
+Tỷ lệ Dropout: 32.1%
+========================================================================
+
+────────────────────────────────────────────────────────────────────────
+PHẦN 1 – TƯƠNG QUAN SPEARMAN VỚI NHÃN BỎ HỌC (y)
+────────────────────────────────────────────────────────────────────────
+
+Thứ hạng Đặc trưng                                              r    |r|          p  Nhóm
+------------------------------------------------------------------------------------------
+1      Curricular units 2nd sem (approved)               -0.582  0.582   0.00e+00  [HIGH] HK2 ⚠
+2      Curricular units 1st sem (approved)               -0.523  0.523  4.76e-309  [OK] HK1
+3      Curricular units 2nd sem (grade)                  -0.510  0.510  1.20e-291  [HIGH] HK2 ⚠
+4      Curricular units 1st sem (grade)                  -0.443  0.443  1.11e-211  [OK] HK1
+5      Tuition fees up to date                           -0.429  0.429  9.86e-198  [OK] Nhập học
+6      Age at enrollment                                  0.280  0.280   1.63e-80  [OK] Nhập học
+7      Scholarship holder                                -0.245  0.245   1.18e-61  [OK] Nhập học
+8      Debtor                                             0.229  0.229   6.37e-54  [OK] Nhập học
+9      Gender                                             0.204  0.204   9.09e-43  [OK] Nhập học
+10     Application mode                                   0.191  0.191   1.56e-37  [OK] Nhập học
+11     Curricular units 2nd sem (enrolled)               -0.188  0.188   1.36e-36  [MEDIUM] HK2 ⚠
+12     Curricular units 1st sem (enrolled)               -0.180  0.180   1.44e-33  [OK] HK1
+13     Previous qualification                             0.141  0.141   5.57e-21  [OK] Nhập học
+14     Curricular units 2nd sem (evaluations)            -0.119  0.119   1.79e-15  [MEDIUM] HK2 ⚠
+15     Marital Status                                     0.114  0.114   3.55e-14  [OK] Nhập học
+16     Displaced                                         -0.107  0.107   8.62e-13  [OK] Nhập học
+17     Admission grade                                   -0.099  0.099   5.01e-11  [OK] Nhập học
+18     Application order                                 -0.083  0.083   3.32e-08  [OK] Nhập học
+19     Daytime/evening attendance                        -0.080  0.080   8.26e-08  [OK] Nhập học
+20     Previous qualification (grade)                    -0.080  0.080   1.07e-07  [OK] Nhập học
+21     Curricular units 2nd sem (without evaluations)     0.066  0.066   1.15e-05  [MEDIUM] HK2 ⚠
+22     Curricular units 1st sem (without evaluations)     0.058  0.058   1.02e-04  [OK] HK1
+23     GDP                                               -0.057  0.057   1.65e-04  [LOW] Vĩ mô
+24     Curricular units 1st sem (evaluations)            -0.055  0.055   2.64e-04  [OK] HK1
+25     Mother's qualification                             0.040  0.040   8.24e-03  [OK] Nhập học
+26     Father's occupation                               -0.036  0.036   1.74e-02  [OK] Nhập học
+27     Mother's occupation                               -0.033  0.033   3.05e-02  [OK] Nhập học
+28     Inflation rate                                     0.023  0.023   1.23e-01  [LOW] Vĩ mô
+29     Curricular units 2nd sem (credited)               -0.022  0.022   1.48e-01  [MEDIUM] HK2 ⚠
+30     Curricular units 1st sem (credited)               -0.012  0.012   4.24e-01  [OK] HK1
+31     Father's qualification                            -0.011  0.011   4.77e-01  [OK] Nhập học
+32     International                                     -0.010  0.010   4.91e-01  [OK] Nhập học
+33     Nationality                                       -0.010  0.010   5.04e-01  [OK] Nhập học
+34     Unemployment rate                                  0.010  0.010   5.26e-01  [LOW] Vĩ mô
+35     Educational special needs                          0.003  0.003   8.52e-01  [OK] Nhập học
+36     Course                                            -0.002  0.002   8.83e-01  [OK] Nhập học
+
+
+────────────────────────────────────────────────────────────────────────
+PHẦN 2 – RÀ SOÁT DATA LEAKAGE THEO NHÓM BIẾN
+────────────────────────────────────────────────────────────────────────
+
+🔴 [HIGH] – 2 biến
+------------------------------------------------------------
+  • Curricular units 2nd sem (approved)
+    r=-0.582 | Biến học kỳ 2 – thông tin chỉ có SAU khi sinh viên đã quyết định bỏ học. Tương quan cao (|r|=0.58) gợi ý quan hệ nhân-quả ngược: bỏ học → không đăng ký/thi HK2, không phải ngược lại. Khi dùng để cảnh báo SỚM (setting=early), các biến này PHẢI bị loại.
+
+  • Curricular units 2nd sem (grade)
+    r=-0.510 | Biến học kỳ 2 – thông tin chỉ có SAU khi sinh viên đã quyết định bỏ học. Tương quan cao (|r|=0.51) gợi ý quan hệ nhân-quả ngược: bỏ học → không đăng ký/thi HK2, không phải ngược lại. Khi dùng để cảnh báo SỚM (setting=early), các biến này PHẢI bị loại.
+
+
+🟠 [MEDIUM] – 4 biến
+------------------------------------------------------------
+  • Curricular units 2nd sem (enrolled)
+    r=-0.188 | Biến học kỳ 2 – về mặt thời gian có thể xảy ra sau quyết định bỏ học. Tương quan vừa phải (|r|=0.19). Chỉ nên dùng ở setting=full và phải ghi chú rõ hạn chế này.
+
+  • Curricular units 2nd sem (evaluations)
+    r=-0.119 | Biến học kỳ 2 – về mặt thời gian có thể xảy ra sau quyết định bỏ học. Tương quan vừa phải (|r|=0.12). Chỉ nên dùng ở setting=full và phải ghi chú rõ hạn chế này.
+
+  • Curricular units 2nd sem (without evaluations)
+    r=0.066 | Biến học kỳ 2 – về mặt thời gian có thể xảy ra sau quyết định bỏ học. Tương quan vừa phải (|r|=0.07). Chỉ nên dùng ở setting=full và phải ghi chú rõ hạn chế này.
+
+  • Curricular units 2nd sem (credited)
+    r=-0.022 | Biến học kỳ 2 – về mặt thời gian có thể xảy ra sau quyết định bỏ học. Tương quan vừa phải (|r|=0.02). Chỉ nên dùng ở setting=full và phải ghi chú rõ hạn chế này.
+
+
+🟡 [LOW] – 3 biến
+------------------------------------------------------------
+  • GDP
+    r=-0.057 | Biến vĩ mô (đo ngoài nhà trường) – không phụ thuộc hành vi cá nhân, không có quan hệ nhân-quả ngược với nhãn. Tuy nhiên tương quan thấp (|r|=0.06) gợi ý tín hiệu yếu, dễ gây nhiễu hơn là cải thiện mô hình.
+
+  • Inflation rate
+    r=0.023 | Biến vĩ mô (đo ngoài nhà trường) – không phụ thuộc hành vi cá nhân, không có quan hệ nhân-quả ngược với nhãn. Tuy nhiên tương quan thấp (|r|=0.02) gợi ý tín hiệu yếu, dễ gây nhiễu hơn là cải thiện mô hình.
+
+  • Unemployment rate
+    r=0.010 | Biến vĩ mô (đo ngoài nhà trường) – không phụ thuộc hành vi cá nhân, không có quan hệ nhân-quả ngược với nhãn. Tuy nhiên tương quan thấp (|r|=0.01) gợi ý tín hiệu yếu, dễ gây nhiễu hơn là cải thiện mô hình.
+
+
+🟢 [OK] – 27 biến
+------------------------------------------------------------
+  • Curricular units 1st sem (approved)
+    r=-0.523 | Biến học kỳ 1 – thu thập trước khi dropout chính thức xảy ra. Tương quan cao (|r|=0.52) phản ánh tín hiệu dự báo thực, không phải data leakage.
+
+  • Curricular units 1st sem (grade)
+    r=-0.443 | Biến học kỳ 1 – thu thập trước khi dropout chính thức xảy ra. Tương quan cao (|r|=0.44) phản ánh tín hiệu dự báo thực, không phải data leakage.
+
+  • Tuition fees up to date
+    r=-0.429 | Biến nhập học – có sẵn trước khi nhập học, không có rủi ro leakage. Tương quan (|r|=0.43).
+
+  • Age at enrollment
+    r=0.280 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.28).
+
+  • Scholarship holder
+    r=-0.245 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.25).
+
+  • Debtor
+    r=0.229 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.23).
+
+  • Gender
+    r=0.204 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.20).
+
+  • Application mode
+    r=0.191 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.19).
+
+  • Curricular units 1st sem (enrolled)
+    r=-0.180 | Biến học kỳ 1 – tín hiệu dự báo tốt, không có rủi ro leakage.
+
+  • Previous qualification
+    r=0.141 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.14).
+
+  • Marital Status
+    r=0.114 | Không xác định nhóm, tương quan (|r|=0.11).
+
+  • Displaced
+    r=-0.107 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.11).
+
+  • Admission grade
+    r=-0.099 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.10).
+
+  • Application order
+    r=-0.083 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.08).
+
+  • Daytime/evening attendance
+    r=-0.080 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.08).
+
+  • Previous qualification (grade)
+    r=-0.080 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.08).
+
+  • Curricular units 1st sem (without evaluations)
+    r=0.058 | Biến học kỳ 1 – tín hiệu dự báo tốt, không có rủi ro leakage.
+
+  • Curricular units 1st sem (evaluations)
+    r=-0.055 | Biến học kỳ 1 – tín hiệu dự báo tốt, không có rủi ro leakage.
+
+  • Mother's qualification
+    r=0.040 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.04).
+
+  • Father's occupation
+    r=-0.036 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.04).
+
+  • Mother's occupation
+    r=-0.033 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.03).
+
+  • Curricular units 1st sem (credited)
+    r=-0.012 | Biến học kỳ 1 – tín hiệu dự báo tốt, không có rủi ro leakage.
+
+  • Father's qualification
+    r=-0.011 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.01).
+
+  • International
+    r=-0.010 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.01).
+
+  • Nationality
+    r=-0.010 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.01).
+
+  • Educational special needs
+    r=0.003 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.00).
+
+  • Course
+    r=-0.002 | Biến nhập học – không có rủi ro leakage, tương quan thấp (|r|=0.00).
+
+
+────────────────────────────────────────────────────────────────────────
+PHẦN 3 – ĐA CỘNG TUYẾN GIỮA CÁC ĐẶC TRƯNG (|r| ≥ 0.70)
+────────────────────────────────────────────────────────────────────────
+
+Tìm thấy 6 cặp biến có |r| ≥ 0.70:
+
+  r=+1.000  [OK] Nationality
+          [OK] International
+
+  r=+0.962  [OK] Curricular units 1st sem (enrolled)
+          [HIGH] Curricular units 2nd sem (enrolled)
+
+  r=+0.914  [OK] Curricular units 1st sem (credited)
+          [HIGH] Curricular units 2nd sem (credited)
+
+  r=+0.892  [OK] Curricular units 1st sem (approved)
+          [HIGH] Curricular units 2nd sem (approved)
+
+  r=+0.762  [OK] Curricular units 1st sem (grade)
+          [HIGH] Curricular units 2nd sem (grade)
+
+  r=+0.707  [OK] Curricular units 1st sem (enrolled)
+          [OK] Curricular units 1st sem (approved)
+
+
+────────────────────────────────────────────────────────────────────────
+PHẦN 4 – KẾT LUẬN VÀ KHUYẾN NGHỊ
+────────────────────────────────────────────────────────────────────────
+
+1. BIẾN HỌC KỲ 2 (setting=early) – RỦI RO CAO:
+   Các biến như 'CU 2nd sem (approved)', 'CU 2nd sem (grade)', ...
+   có tương quan rất cao với y (|r| = 0.5–0.7) nhưng đây là QUAN HỆ
+   NHÂN-QUẢ NGƯỢC: sinh viên đã quyết định bỏ học → không thi/đăng ký HK2.
+   → Pipeline đã loại ĐÚNG các biến này ở setting=early.
+   → Ở setting=full, cần ghi chú hạn chế này trong báo cáo.
+
+2. BIẾN VĨ MÔ (GDP, Inflation, Unemployment) – RỦI RO THẤP:
+   Không có quan hệ nhân-quả ngược. Tuy nhiên tương quan thấp (|r| ≤ 0.15)
+   gợi ý đây là nhiễu hơn là tín hiệu dự báo có giá trị.
+   → Pipeline Luồng B đã bỏ đúng. Luồng A giữ lại để so sánh.
+
+3. BIẾN HỌC KỲ 1 (setting=early) – AN TOÀN:
+   Thu thập trong suốt HK1, trước khi dropout chính thức. Tương quan cao
+   (approved: r≈-0.52, grade: r≈-0.46) là TÍN HIỆU DỰ BÁO HỢP LỆ.
+   → Đây là nhóm đặc trưng quan trọng nhất cho bài toán cảnh báo sớm.
+
+4. ĐA CỘNG TUYẾN TRONG NHÓM HK1/HK2:
+   enrolled↔evaluations, approved↔grade có tương quan cao (r≈0.7–0.9).
+   → Với Decision Tree: không ảnh hưởng vì cây không giả định tuyến tính.
+   → Với KNN và NaiveBayes: có thể gây double-counting trọng số.
+   → Khuyến nghị: thêm đặc trưng tỷ lệ (Luồng B) thay vì giữ cả hai biến.
+
+5. PIPELINE HIỆN TẠI – ĐÁNH GIÁ TỔNG THỂ:
+   ✅ Tất cả bước học tham số nằm trong sklearn.Pipeline → không leakage kỹ thuật.
+   ✅ setting=early không dùng biến HK2 → không leakage thời gian ở kịch bản chính.
+   ⚠  setting=full dùng biến HK2 → cần ghi chú rõ: đây là thực nghiệm hồi cứu,
+      không phù hợp cho hệ thống cảnh báo sớm thực tế.
+   ✅ Feature engineering (approve rate, no-eval ratio) chỉ dùng tính toán từng dòng.
+========================================================================
