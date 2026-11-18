@@ -103,10 +103,13 @@ python scripts/download_data.py
 # 2. Thí nghiệm chính: EDA, tiền xử lý, huấn luyện, đánh giá, phân tích lỗi
 python dropout_pipeline.py --data data/student_dropout.csv --out results
 
-# 3. Các hình EDA bổ sung dùng trong báo cáo
+# 3. Demo dự đoán (sau khi đã huấn luyện và lưu mô hình)
+python predict_student.py --model models/best_early_model.joblib
+
+# 4. Các hình EDA bổ sung dùng trong báo cáo
 python eda_extra.py --data data/student_dropout.csv --out results
 
-# 4. Rà soát tương quan và nguy cơ rò rỉ dữ liệu (chạy riêng)
+# 5. Rà soát tương quan và nguy cơ rò rỉ dữ liệu (chạy riêng)
 python leakage_check.py --data data/student_dropout.csv --out results
 ```
 
@@ -121,6 +124,14 @@ Kết quả ghi vào `results/`:
 | `importance_*.png` | Độ quan trọng đặc trưng của cây quyết định |
 | `eda_*.png` | Các hình khám phá dữ liệu |
 | `leakage_report.txt`, `leakage_*.png` | Báo cáo và biểu đồ rà soát tương quan/nguy cơ leakage (tạo bởi `leakage_check.py`) |
+
+Mô hình `early` có CV-F1 cao nhất (không tính baseline) được chọn mà không dùng chỉ số test và lưu thành `models/best_early_model.joblib`. File chứa cả bước tiền xử lý và classifier; thư mục `models/` được bỏ qua bởi Git. Chạy `dropout_pipeline.py` để tạo/cập nhật artifact trước khi chạy demo.
+
+### Demo nhập hồ sơ sinh viên
+
+`predict_student.py` hỏi lần lượt các trường đầu vào cần thiết của mô hình đã lưu: thông tin nhập học và kết quả học kỳ 1. Mã các biến danh mục cần nhập dưới dạng số nguyên theo quy ước mã hóa của bộ dữ liệu UCI; các biến nhị phân chỉ nhận `0` hoặc `1`. Có thể để trống trường chưa biết; nếu không có đánh giá học kỳ 1, điểm được xem là thiếu như trong dữ liệu huấn luyện và sẽ được điền bởi pipeline. Chương trình áp dụng lại feature engineering của luồng mô hình và in nhãn dự đoán cùng điểm nguy cơ ước lượng. Mô hình hiện được chọn theo CV-F1 trong phạm vi `early`; việc chọn mô hình không dựa trên tập test.
+
+Điểm `predict_proba` chưa được hiệu chuẩn thành tỷ lệ bỏ học ngoài thực tế. Dữ liệu UCI đến từ một cơ sở đào tạo ở Bồ Đào Nha, do đó kết quả chỉ phù hợp cho mục đích minh họa, không dùng làm căn cứ ra quyết định về sinh viên.
 
 Mọi bước học tham số (điền thiếu, chuẩn hóa, mã hóa one-hot) nằm trong `Pipeline` và chỉ fit trên tập huấn luyện. `random_state = 42` được cố định cho việc chia dữ liệu, kiểm định chéo và các mô hình có tính ngẫu nhiên. Chia dữ liệu 80/20 phân tầng theo nhãn (3 539 mẫu huấn luyện, 885 mẫu kiểm thử). Tập kiểm thử chỉ dùng một lần để báo cáo kết quả. Xem chi tiết lưới siêu tham số và bảo đảm không rò rỉ dữ liệu tại mục **[Tính tái lập và thiết kế thí nghiệm](#tính-tái-lập-và-thiết-kế-thí-nghiệm)** ở trên.
 
@@ -220,6 +231,8 @@ Chi tiết và các phân tích khác nằm trong báo cáo (`report/`).
 ├── scripts/
 │   └── download_data.py          # Tải dữ liệu bằng ucimlrepo
 ├── dropout_pipeline.py           # Pipeline chính: EDA, huấn luyện, đánh giá, phân tích lỗi
+├── predict_student.py            # Demo terminal dự đoán từ hồ sơ mới
+├── models/                       # Pipeline tốt nhất đã lưu (tự sinh, không commit)
 ├── eda_extra.py                  # Sinh các hình EDA bổ sung cho báo cáo
 ├── leakage_check.py              # Rà soát tương quan và nguy cơ data leakage
 ├── requirements.txt              # Phiên bản thư viện để tái lập kết quả
@@ -235,7 +248,7 @@ Chi tiết và các phân tích khác nằm trong báo cáo (`report/`).
 - Dữ liệu từ một cơ sở đào tạo ở Bồ Đào Nha, nên khó tổng quát hóa sang môi trường khác.
 - Mỗi cấu hình chỉ chạy với một `random_state`, nên chưa đánh giá được độ ổn định của kết quả.
 - Ngưỡng quyết định giữ mặc định 0,5, chưa điều chỉnh theo chi phí của bỏ sót và cảnh báo nhầm.
-- Chưa lưu mô hình ra file và chưa có giao diện dự đoán cho hồ sơ mới.
+- Điểm xác suất chưa được hiệu chuẩn trên dữ liệu ngoài mẫu; demo terminal chỉ dùng để minh họa, chưa có giao diện web.
 
 ## Thành viên và phân công
 
