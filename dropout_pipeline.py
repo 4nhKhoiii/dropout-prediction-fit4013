@@ -2,6 +2,7 @@ import argparse
 import os
 import warnings
 
+import joblib
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -13,6 +14,7 @@ if hasattr(sys.stdout, "reconfigure"):
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+from sklearn import __version__ as SKLEARN_VERSION  # noqa: E402
 from sklearn.compose import ColumnTransformer  # noqa: E402
 from sklearn.dummy import DummyClassifier  # noqa: E402
 from sklearn.impute import SimpleImputer  # noqa: E402
@@ -78,11 +80,22 @@ MACRO_COLS = ["Unemployment rate", "Inflation rate", "GDP"]
 SEM_FIELDS = ["(credited)", "(enrolled)", "(evaluations)", "(approved)", "(grade)", "(without evaluations)"]
 SEM1_COLS = [f"Curricular units 1st sem {f}" for f in SEM_FIELDS]
 SEM2_COLS = [f"Curricular units 2nd sem {f}" for f in SEM_FIELDS]
+EARLY_INPUT_COLS = BASE_NUM + BIN_COLS + CAT_COLS + SEM1_COLS
 
 
 # ---------------------------------------------------------------------------
 # 1. Nạp và làm sạch dữ liệu
 # ---------------------------------------------------------------------------
+def normalize_missing_grades(df, setting):
+    """Treat a semester grade as missing when the student had no evaluations."""
+    semesters = ["1st sem"] + (["2nd sem"] if setting == "full" else [])
+    for semester in semesters:
+        eval_col = f"Curricular units {semester} (evaluations)"
+        grade_col = f"Curricular units {semester} (grade)"
+        df.loc[df[eval_col] == 0, grade_col] = np.nan
+    return df
+
+
 def load_data(path):
     """Đọc CSV tự nhận diện dấu phân cách và chuẩn hóa tên cột."""
     if not os.path.isfile(path):
@@ -152,10 +165,7 @@ def load_data(path):
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     # Khi không có đánh giá nào (evaluations == 0), điểm 0.0 được xem là không có điểm.
-    for semester in ["1st sem", "2nd sem"]:
-        eval_col = f"Curricular units {semester} (evaluations)"
-        grade_col = f"Curricular units {semester} (grade)"
-        df.loc[df[eval_col] == 0, grade_col] = np.nan
+    normalize_missing_grades(df, "full")
 
     df["y"] = (df["Target"].str.lower() == "dropout").astype(int)
     if df["y"].nunique() < 2:
@@ -349,6 +359,43 @@ def run_experiments(df, out):
     return res, fitted
 
 
+def save_best_early_model(res, fitted, model_dir):
+    """Persist the best fitted early pipeline, selected only by cross-validation F1."""
+    candidates = res[
+        (res["setting"] == "early")
+        & (~res["model"].str.startswith("Baseline"))
+        & res["cv_f1"].notna()
+    ]
+    if candidates.empty:
+        raise ValueError("Không có kết quả CV hợp lệ để chọn mô hình early.")
+
+    best_row = candidates.sort_values("cv_f1", ascending=False).iloc[0]
+    key = (best_row["setting"], best_row["flow"], best_row["model"])
+    if key not in fitted:
+        raise ValueError(f"Không tìm thấy mô hình đã fit tương ứng với kết quả tốt nhất: {key}")
+
+    estimator = fitted[key][0]
+    num_cols, cat_cols = feature_sets(best_row["setting"], best_row["flow"])
+    artifact = {
+        "model": estimator,
+        "metadata": {
+            "setting": best_row["setting"],
+            "flow": best_row["flow"],
+            "model_name": best_row["model"],
+            "cv_f1": float(best_row["cv_f1"]),
+            "best_params": best_row["best_params"],
+            "input_columns": EARLY_INPUT_COLS,
+            "feature_columns": num_cols + cat_cols,
+            "sklearn_version": SKLEARN_VERSION,
+        },
+    }
+
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = os.path.join(model_dir, "best_early_model.joblib")
+    joblib.dump(artifact, model_path)
+    return model_path
+
+
 # ---------------------------------------------------------------------------
 # 6. Phân tích lỗi cho mô hình tốt nhất (chọn theo CV-F1, không dùng test)
 # ---------------------------------------------------------------------------
@@ -394,6 +441,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/student_dropout.csv")
     ap.add_argument("--out", default="results")
+    ap.add_argument("--model-out", default="models")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -403,8 +451,10 @@ def main():
 
     res, fitted = run_experiments(df, args.out)
 
-    # Phân tích lỗi chỉ trên phạm vi "early" (phạm vi dùng để cảnh báo sớm).
-    # Chọn mô hình theo CV-F1 trong phạm vi này, không dùng tập kiểm thử.
+    model_path = save_best_early_model(res, fitted, args.model_out)
+    print(f"\nĐã lưu mô hình early tốt nhất (chọn theo CV-F1): {model_path}")
+
+    # Phân tích lỗi và lưu mô hình đều chọn theo CV-F1, không dùng tập kiểm thử.
     cand = res[(res["setting"] == "early") & (~res["model"].str.startswith("Baseline"))]
     best_row = cand.sort_values("cv_f1", ascending=False).iloc[0]
     key = ("early", best_row["flow"], best_row["model"])
