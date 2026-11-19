@@ -250,17 +250,6 @@ Chi tiết và các phân tích khác nằm trong báo cáo (`report/`).
 - Ngưỡng quyết định giữ mặc định 0,5, chưa điều chỉnh theo chi phí của bỏ sót và cảnh báo nhầm.
 - Điểm xác suất chưa được hiệu chuẩn trên dữ liệu ngoài mẫu; demo terminal chỉ dùng để minh họa, chưa có giao diện web.
 
-## Thành viên và phân công
-
-| Thành viên | Nhiệm vụ |
-|------------|----------|
-| Ngô Nguyễn Anh Khôi | *(điền)* |
-| Hoàng Quang Huy | *(điền)* |
-| Vũ Anh Quân | *(điền)* |
-
-## Khai báo sử dụng AI
-
-Xem [AI_USAGE.md](AI_USAGE.md).
 
 ## Tài liệu tham khảo
 
